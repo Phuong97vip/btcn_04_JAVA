@@ -15,6 +15,8 @@ public class ConnectServerScreen extends JFrame implements ActionListener {
 	public ServerData connectedServer;
 	JTable serverTable;
 	List<ServerData> serverList;
+	JTextField nameText;
+	JPasswordField passwordField;
 
 	public ConnectServerScreen() {
 		GBCBuilder gbc = new GBCBuilder(1, 1);
@@ -94,8 +96,6 @@ public class ConnectServerScreen extends JFrame implements ActionListener {
 		this.setVisible(true);
 	}
 
-	JTextField nameText;
-
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		switch (e.getActionCommand()) {
@@ -109,45 +109,73 @@ public class ConnectServerScreen extends JFrame implements ActionListener {
 				break;
 			}
 
-			JDialog askNameDialog = new JDialog();
+			JDialog loginDialog = new JDialog();
+			loginDialog.setTitle("Đăng nhập");
+			loginDialog.setModalityType(JDialog.DEFAULT_MODALITY_TYPE);
+			loginDialog.setLayout(new GridBagLayout());
+			GBCBuilder gbc = new GBCBuilder(1, 1).setInsets(5);
 
+			JLabel usernameLabel = new JLabel("Tên đăng nhập:");
 			nameText = new JTextField();
 			nameText.setPreferredSize(new Dimension(250, 30));
-			JButton joinServerButton = new JButton("Vào");
-			joinServerButton.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent arg0) {
-					if (nameText.getText().isEmpty())
-						JOptionPane.showMessageDialog(askNameDialog, "Tên không được trống", "Thông báo",
-								JOptionPane.INFORMATION_MESSAGE);
-					else {
-						String selectedIP = serverTable.getValueAt(serverTable.getSelectedRow(), 2).toString();
-						int selectedPort = Integer
-								.parseInt(serverTable.getValueAt(serverTable.getSelectedRow(), 3).toString());
-						ServerData selectedServer = serverList.stream()
-								.filter(x -> x.ip.equals(selectedIP) && x.port == selectedPort).findAny().orElse(null);
 
-						Main.socketController = new SocketController(nameText.getText(), selectedServer);
-						Main.socketController.Login();
-						// kết quả join ở loginResultAction
-						askNameDialog.setVisible(false);
-						askNameDialog.dispose();
+			JLabel passwordLabel = new JLabel("Mật khẩu:");
+			passwordField = new JPasswordField();
+			passwordField.setPreferredSize(new Dimension(250, 30));
+
+			JButton loginButton = new JButton("Đăng nhập");
+			JButton registerButton = new JButton("Đăng ký");
+
+			loginButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					if (nameText.getText().isEmpty() || passwordField.getPassword().length == 0) {
+						JOptionPane.showMessageDialog(loginDialog, "Vui lòng nhập đầy đủ thông tin", "Thông báo",
+								JOptionPane.WARNING_MESSAGE);
+						return;
 					}
+
+					String selectedIP = serverTable.getValueAt(serverTable.getSelectedRow(), 2).toString();
+					int selectedPort = Integer.parseInt(serverTable.getValueAt(serverTable.getSelectedRow(), 3).toString());
+					ServerData selectedServer = serverList.stream()
+							.filter(x -> x.ip.equals(selectedIP) && x.port == selectedPort).findAny().orElse(null);
+
+					Main.socketController = new SocketController(nameText.getText(), selectedServer);
+					Main.socketController.login(new String(passwordField.getPassword()));
+					loginDialog.setVisible(false);
+					loginDialog.dispose();
 				}
 			});
 
-			JPanel askNameContent = new JPanel(new GridBagLayout());
-			askNameContent.add(nameText, new GBCBuilder(1, 1).setFill(GridBagConstraints.BOTH).setWeight(1, 1));
-			askNameContent.add(joinServerButton, new GBCBuilder(2, 1).setFill(GridBagConstraints.BOTH));
+			registerButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					if (nameText.getText().isEmpty() || passwordField.getPassword().length == 0) {
+						JOptionPane.showMessageDialog(loginDialog, "Vui lòng nhập đầy đủ thông tin", "Thông báo",
+								JOptionPane.WARNING_MESSAGE);
+						return;
+					}
 
-			askNameDialog.setContentPane(askNameContent);
-			askNameDialog.setTitle("Nhập tên của bạn để vào server "
-					+ serverTable.getValueAt(serverTable.getSelectedRow(), 0).toString());
-			askNameDialog.setModalityType(JDialog.DEFAULT_MODALITY_TYPE);
-			askNameDialog.pack();
-			askNameDialog.getRootPane().setDefaultButton(joinServerButton);
-			askNameDialog.setLocationRelativeTo(null);
-			askNameDialog.setVisible(true);
+					String selectedIP = serverTable.getValueAt(serverTable.getSelectedRow(), 2).toString();
+					int selectedPort = Integer.parseInt(serverTable.getValueAt(serverTable.getSelectedRow(), 3).toString());
+					ServerData selectedServer = serverList.stream()
+							.filter(x -> x.ip.equals(selectedIP) && x.port == selectedPort).findAny().orElse(null);
+
+					Main.socketController = new SocketController(nameText.getText(), selectedServer);
+					Main.socketController.register(new String(passwordField.getPassword()));
+				}
+			});
+
+			loginDialog.add(usernameLabel, gbc.setGrid(1, 1).setWeight(0, 0));
+			loginDialog.add(nameText, gbc.setGrid(2, 1).setWeight(1, 0));
+			loginDialog.add(passwordLabel, gbc.setGrid(1, 2).setWeight(0, 0));
+			loginDialog.add(passwordField, gbc.setGrid(2, 2).setWeight(1, 0));
+			loginDialog.add(loginButton, gbc.setGrid(1, 3).setWeight(1, 0));
+			loginDialog.add(registerButton, gbc.setGrid(2, 3).setWeight(1, 0));
+
+			loginDialog.pack();
+			loginDialog.setLocationRelativeTo(null);
+			loginDialog.setVisible(true);
 			break;
 		}
 		case "add": {
@@ -308,11 +336,17 @@ public class ConnectServerScreen extends JFrame implements ActionListener {
 			this.dispose();
 			Main.mainScreen = new MainScreen();
 
-		} else if (result.equals("existed"))
-			JOptionPane.showMessageDialog(this, "Username đã tồn tại", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+		} else if (result.equals("failed"))
+			JOptionPane.showMessageDialog(this, "Tên đăng nhập hoặc mật khẩu không đúng", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
 		else if (result.equals("closed"))
 			JOptionPane.showMessageDialog(this, "Server đã đóng", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+	}
 
+	public void registerResultAction(String result) {
+		if (result.equals("success")) {
+			JOptionPane.showMessageDialog(this, "Đăng ký thành công", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+		} else if (result.equals("failed"))
+			JOptionPane.showMessageDialog(this, "Tên đăng nhập đã tồn tại", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	public void updateServerTable() {

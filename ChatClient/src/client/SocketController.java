@@ -41,11 +41,31 @@ public class SocketController {
 		}
 	}
 
-	public void Login() {
+	public void register(String password) {
 		try {
-			sender.write("new login");
+			sender.write("register");
 			sender.newLine();
 			sender.write(userName);
+			sender.newLine();
+			sender.write(password);
+			sender.newLine();
+			sender.flush();
+
+			String registerResult = receiver.readLine();
+			Main.connectServerScreen.registerResultAction(registerResult);
+
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+	}
+
+	public void login(String password) {
+		try {
+			sender.write("login");
+			sender.newLine();
+			sender.write(userName);
+			sender.newLine();
+			sender.write(password);
 			sender.newLine();
 			sender.flush();
 
@@ -88,7 +108,6 @@ public class SocketController {
 									}
 								}
 								Main.mainScreen.updateRoomUsersJList();
-
 								break;
 							}
 							case "new room": {
@@ -246,18 +265,17 @@ public class SocketController {
 						try {
 							Main.socketController.s.close();
 						} catch (IOException e1) {
-							// TODO Auto-generated catch block
 							e1.printStackTrace();
 						}
 						System.exit(0);
 					}
 				});
 				receiveAndProcessThread.start();
-			} else
-				Main.connectServerScreen.loginResultAction("existed");
-
+			} else {
+				Main.connectServerScreen.loginResultAction("failed");
+			}
 		} catch (IOException e1) {
-
+			e1.printStackTrace();
 		}
 	}
 

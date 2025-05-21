@@ -8,7 +8,7 @@ import java.util.List;
 
 public class ClientCommunicateThread extends Thread {
 
-	Client thisClient;
+	private Client thisClient;
 
 	public ClientCommunicateThread(Socket clientSocket) {
 		try {
@@ -20,7 +20,7 @@ public class ClientCommunicateThread extends Thread {
 			thisClient.receiver = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
 			thisClient.port = clientSocket.getPort();
 		} catch (IOException e) {
-
+			e.printStackTrace();
 		}
 	}
 
@@ -35,20 +35,28 @@ public class ClientCommunicateThread extends Thread {
 				System.out.println("Header: " + header);
 				switch (header) {
 
-				case "new login": {
+				case "register": {
+					String username = thisClient.receiver.readLine();
+					String password = thisClient.receiver.readLine();
 
-					String clientUsername = thisClient.receiver.readLine();
-
-					boolean userNameExisted = false;
-					for (Client connectedClient : Main.socketController.connectedClient) {
-						if (connectedClient.userName.equals(clientUsername)) {
-							userNameExisted = true;
-							break;
-						}
+					boolean success = Main.socketController.userManager.register(username, password);
+					if (success) {
+						thisClient.sender.write("register success");
+					} else {
+						thisClient.sender.write("register failed");
 					}
+					thisClient.sender.newLine();
+					thisClient.sender.flush();
+					break;
+				}
 
-					if (!userNameExisted) {
-						thisClient.userName = clientUsername;
+				case "login": {
+					String username = thisClient.receiver.readLine();
+					String password = thisClient.receiver.readLine();
+
+					boolean success = Main.socketController.userManager.login(username, password);
+					if (success) {
+						thisClient.userName = username;
 						Main.socketController.connectedClient.add(thisClient);
 						Main.mainScreen.updateClientTable();
 

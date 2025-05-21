@@ -9,32 +9,31 @@ public class SocketController {
 
 	public String serverName;
 	public int serverPort;
-	ServerSocket s;
+	public ServerSocket s;
 	public List<Client> connectedClient;
 	public List<Room> allRooms;
+	public UserManager userManager;
+
+	public SocketController() {
+		connectedClient = new ArrayList<Client>();
+		allRooms = new ArrayList<Room>();
+		userManager = new UserManager();
+	}
 
 	public void OpenSocket(int port) {
 		try {
 			s = new ServerSocket(port);
-			connectedClient = new ArrayList<Client>();
-			allRooms = new ArrayList<Room>();
-
 			new Thread(() -> {
-				try {
-					do {
-						System.out.println("Waiting for client");
-
+				while (!s.isClosed()) {
+					try {
 						Socket clientSocket = s.accept();
-
-						ClientCommunicateThread clientCommunicator = new ClientCommunicateThread(clientSocket);
-						clientCommunicator.start();
-
-					} while (s != null && !s.isClosed());
-				} catch (IOException e) {
-					System.out.println("Server or client socket closed");
+						new ClientCommunicateThread(clientSocket).start();
+					} catch (IOException e) {
+						if (!s.isClosed())
+							e.printStackTrace();
+					}
 				}
 			}).start();
-
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -42,8 +41,6 @@ public class SocketController {
 
 	public void CloseSocket() {
 		try {
-			for (Client client : connectedClient)
-				client.socket.close();
 			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -51,15 +48,10 @@ public class SocketController {
 	}
 
 	public static String getThisIP() {
-		String ip = "";
 		try {
-			Socket socket = new Socket();
-			socket.connect(new InetSocketAddress("google.com", 80));
-			ip = socket.getLocalAddress().getHostAddress();
-			socket.close();
-		} catch (IOException e) {
-			e.getStackTrace();
+			return InetAddress.getLocalHost().getHostAddress();
+		} catch (UnknownHostException e) {
+			return "127.0.0.1";
 		}
-		return ip;
 	}
 }
