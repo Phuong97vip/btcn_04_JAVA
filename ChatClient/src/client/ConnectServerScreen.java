@@ -335,18 +335,73 @@ public class ConnectServerScreen extends JFrame implements ActionListener {
 			this.setVisible(false);
 			this.dispose();
 			Main.mainScreen = new MainScreen();
-
-		} else if (result.equals("failed"))
-			JOptionPane.showMessageDialog(this, "Tên đăng nhập hoặc mật khẩu không đúng", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-		else if (result.equals("closed"))
-			JOptionPane.showMessageDialog(this, "Server đã đóng", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+		} else if (result.equals("not_found")) {
+			JOptionPane.showMessageDialog(this, 
+				"Đăng nhập thất bại!\nTài khoản không tồn tại.\nVui lòng kiểm tra lại tên đăng nhập.", 
+				"Thông báo", 
+				JOptionPane.INFORMATION_MESSAGE);
+			nameText.setText("");
+			passwordField.setText("");
+		} else if (result.equals("wrong_password")) {
+			JOptionPane.showMessageDialog(this, 
+				"Đăng nhập thất bại!\nMật khẩu không đúng.\nVui lòng kiểm tra lại mật khẩu.", 
+				"Thông báo", 
+				JOptionPane.INFORMATION_MESSAGE);
+			passwordField.setText("");
+		} else if (result.equals("already_logged_in")) {
+			JOptionPane.showMessageDialog(this, 
+				"Đăng nhập thất bại!\nTài khoản này đang được đăng nhập ở nơi khác.\nVui lòng đăng xuất ở thiết bị khác trước khi đăng nhập lại.", 
+				"Thông báo", 
+				JOptionPane.INFORMATION_MESSAGE);
+			nameText.setText("");
+			passwordField.setText("");
+		} else if (result.equals("empty_fields")) {
+			JOptionPane.showMessageDialog(this,
+				"Đăng nhập thất bại!\nVui lòng nhập đầy đủ tên đăng nhập và mật khẩu.",
+				"Thông báo",
+				JOptionPane.INFORMATION_MESSAGE);
+		} else if (result.equals("server_error")) {
+			JOptionPane.showMessageDialog(this,
+				"Đăng nhập thất bại!\nCó lỗi xảy ra từ phía server.\nVui lòng thử lại sau.",
+				"Thông báo",
+				JOptionPane.INFORMATION_MESSAGE);
+			nameText.setText("");
+			passwordField.setText("");
+		} else if (result.equals("closed")) {
+			JOptionPane.showMessageDialog(this, 
+				"Server đã đóng", 
+				"Thông báo", 
+				JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 
 	public void registerResultAction(String result) {
 		if (result.equals("success")) {
-			JOptionPane.showMessageDialog(this, "Đăng ký thành công", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-		} else if (result.equals("failed"))
-			JOptionPane.showMessageDialog(this, "Tên đăng nhập đã tồn tại", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+			JOptionPane.showMessageDialog(this, 
+				"Đăng ký thành công!\nBạn có thể đăng nhập ngay bây giờ.", 
+				"Thông báo", 
+				JOptionPane.INFORMATION_MESSAGE);
+			passwordField.setText("");
+		} else if (result.equals("failed")) {
+			JOptionPane.showMessageDialog(this, 
+				"Đăng ký thất bại!\nTên đăng nhập đã tồn tại.", 
+				"Lỗi", 
+				JOptionPane.ERROR_MESSAGE);
+			nameText.setText("");
+			passwordField.setText("");
+		} else if (result.equals("empty_fields")) {
+			JOptionPane.showMessageDialog(this,
+				"Đăng ký thất bại!\nVui lòng nhập đầy đủ tên đăng nhập và mật khẩu.",
+				"Lỗi",
+				JOptionPane.ERROR_MESSAGE);
+		} else if (result.equals("server_error")) {
+			JOptionPane.showMessageDialog(this,
+				"Đăng ký thất bại!\nCó lỗi xảy ra từ phía server.",
+				"Lỗi",
+				JOptionPane.ERROR_MESSAGE);
+			nameText.setText("");
+			passwordField.setText("");
+		}
 	}
 
 	public void updateServerTable() {

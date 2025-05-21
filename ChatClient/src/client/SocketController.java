@@ -69,8 +69,11 @@ public class SocketController {
 			sender.newLine();
 			sender.flush();
 
-			String loginResult = receiver.readLine();
-			if (loginResult.equals("login success")) {
+			String result = receiver.readLine();
+			System.out.println("Login result received: " + result);
+			Main.connectServerScreen.loginResultAction(result);
+
+			if (result.equals("login success")) {
 				Main.connectServerScreen.loginResultAction("success");
 
 				int serverOnlineAccountCount = Integer.parseInt(receiver.readLine());
@@ -274,8 +277,9 @@ public class SocketController {
 			} else {
 				Main.connectServerScreen.loginResultAction("failed");
 			}
-		} catch (IOException e1) {
-			e1.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+			Main.connectServerScreen.loginResultAction("server_error");
 		}
 	}
 
@@ -323,6 +327,8 @@ public class SocketController {
 
 			in.close();
 			out.flush();
+			
+			// Thêm tin nhắn vào room ngay lập tức để tránh hiện thông báo xóa
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

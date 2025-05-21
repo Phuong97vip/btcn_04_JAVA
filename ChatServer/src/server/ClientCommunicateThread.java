@@ -39,14 +39,30 @@ public class ClientCommunicateThread extends Thread {
 					String username = thisClient.receiver.readLine();
 					String password = thisClient.receiver.readLine();
 
-					boolean success = Main.socketController.userManager.register(username, password);
-					if (success) {
-						thisClient.sender.write("register success");
-					} else {
-						thisClient.sender.write("register failed");
+					// Kiểm tra trường trống
+					if (username == null || username.trim().isEmpty() || 
+						password == null || password.trim().isEmpty()) {
+						thisClient.sender.write("empty_fields");
+						thisClient.sender.newLine();
+						thisClient.sender.flush();
+						break;
 					}
-					thisClient.sender.newLine();
-					thisClient.sender.flush();
+
+					try {
+						boolean success = Main.socketController.userManager.register(username, password);
+						if (success) {
+							thisClient.sender.write("success");
+						} else {
+							thisClient.sender.write("failed");
+						}
+						thisClient.sender.newLine();
+						thisClient.sender.flush();
+					} catch (Exception e) {
+						e.printStackTrace();
+						thisClient.sender.write("server_error");
+						thisClient.sender.newLine();
+						thisClient.sender.flush();
+					}
 					break;
 				}
 
@@ -54,38 +70,58 @@ public class ClientCommunicateThread extends Thread {
 					String username = thisClient.receiver.readLine();
 					String password = thisClient.receiver.readLine();
 
-					boolean success = Main.socketController.userManager.login(username, password);
-					if (success) {
-						thisClient.userName = username;
-						Main.socketController.connectedClient.add(thisClient);
-						Main.mainScreen.updateClientTable();
-
-						thisClient.sender.write("login success");
+					// Kiểm tra trường trống
+					if (username == null || username.trim().isEmpty() || 
+						password == null || password.trim().isEmpty()) {
+						thisClient.sender.write("empty_fields");
 						thisClient.sender.newLine();
 						thisClient.sender.flush();
+						break;
+					}
 
-						thisClient.sender.write("" + (Main.socketController.connectedClient.size() - 1));
-						thisClient.sender.newLine();
-						thisClient.sender.flush();
-						for (Client client : Main.socketController.connectedClient) {
-							if (client.userName.equals(thisClient.userName))
-								continue;
-							thisClient.sender.write(client.userName);
+					try {
+						String loginResult = Main.socketController.userManager.login(username, password);
+						System.out.println("Login result: " + loginResult); // Thêm log để debug
+						
+						if (loginResult.equals("success")) {
+							thisClient.userName = username;
+							Main.socketController.connectedClient.add(thisClient);
+							Main.mainScreen.updateClientTable();
+
+							thisClient.sender.write("login success");
+							thisClient.sender.newLine();
+							thisClient.sender.flush();
+
+							thisClient.sender.write("" + (Main.socketController.connectedClient.size() - 1));
+							thisClient.sender.newLine();
+							thisClient.sender.flush();
+							
+							for (Client client : Main.socketController.connectedClient) {
+								if (client.userName.equals(thisClient.userName))
+									continue;
+								thisClient.sender.write(client.userName);
+								thisClient.sender.newLine();
+								thisClient.sender.flush();
+							}
+
+							for (Client client : Main.socketController.connectedClient) {
+								if (client.userName.equals(thisClient.userName))
+									continue;
+								client.sender.write("new user online");
+								client.sender.newLine();
+								client.sender.write(thisClient.userName);
+								client.sender.newLine();
+								client.sender.flush();
+							}
+						} else {
+							System.out.println("Sending login result: " + loginResult); // Thêm log để debug
+							thisClient.sender.write(loginResult);
 							thisClient.sender.newLine();
 							thisClient.sender.flush();
 						}
-
-						for (Client client : Main.socketController.connectedClient) {
-							if (client.userName.equals(thisClient.userName))
-								continue;
-							client.sender.write("new user online");
-							client.sender.newLine();
-							client.sender.write(thisClient.userName);
-							client.sender.newLine();
-							client.sender.flush();
-						}
-					} else {
-						thisClient.sender.write("login failed");
+					} catch (Exception e) {
+						e.printStackTrace();
+						thisClient.sender.write("server_error");
 						thisClient.sender.newLine();
 						thisClient.sender.flush();
 					}
@@ -441,8 +477,10 @@ public class ClientCommunicateThread extends Thread {
 
 		} catch (IOException e) {
 			if (!Main.socketController.s.isClosed() && thisClient.userName != null) {
-
 				try {
+					// Đăng xuất user khi disconnect
+					Main.socketController.userManager.logout(thisClient.userName);
+
 					for (Client client : Main.socketController.connectedClient) {
 						if (!client.userName.equals(thisClient.userName)) {
 							client.sender.write("user quit");

@@ -390,12 +390,19 @@ public class MainScreen extends JFrame implements ActionListener {
 		MessageData messageData = new MessageData(whoSend, type, content);
 		Room receiveMessageRoom = Room.findRoom(Main.socketController.allRooms, roomID);
 		
-		// Chỉ thêm tin nhắn mới vào danh sách
-		if (type.equals("text") || type.equals("file") || type.equals("audio")) {
-			receiveMessageRoom.messages.add(messageData);
+		// Chỉ thêm tin nhắn mới vào danh sách nếu chưa tồn tại
+		boolean messageExists = false;
+		for (MessageData msg : receiveMessageRoom.messages) {
+			if (msg.whoSend.equals(whoSend) && msg.type.equals(type) && msg.content.equals(content)) {
+				messageExists = true;
+				break;
+			}
 		}
 		
-		addNewMessageGUI(roomID, messageData);
+		if (!messageExists) {
+			receiveMessageRoom.messages.add(messageData);
+			addNewMessageGUI(roomID, messageData);
+		}
 	}
 
 	private void addNewMessageGUI(int roomID, MessageData messageData) {
@@ -541,6 +548,7 @@ public class MainScreen extends JFrame implements ActionListener {
 
 				Main.socketController.sendFileToRoom(chattingRoom, fileName, filePath);
 			}
+			break;
 		}
 
 		case "deleteAll": {
