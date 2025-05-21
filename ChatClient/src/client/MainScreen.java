@@ -344,25 +344,60 @@ public class MainScreen extends JFrame implements ActionListener {
 	}
 
 	public void newRoomTab(Room room) {
-		RoomMessagesPanel roomMessagesPanel = new RoomMessagesPanel(room);
-		roomMessagesPanels.add(roomMessagesPanel);
+		System.out.println("=== Bắt đầu mở tab chat mới ===");
+		System.out.println("Room ID: " + room.id + ", Room name: " + room.name);
+		
+		// Kiểm tra xem tab đã tồn tại chưa
+		int existingTabIndex = -1;
+		for (int i = 0; i < roomTabbedPane.getTabCount(); i++) {
+			JScrollPane currentScrollPane = (JScrollPane) roomTabbedPane.getComponentAt(i);
+			RoomMessagesPanel currentRoomMessagePanel = (RoomMessagesPanel) currentScrollPane.getViewport().getView();
+			if (currentRoomMessagePanel.room.id == room.id) {
+				existingTabIndex = i;
+				System.out.println("Tìm thấy tab đã tồn tại tại vị trí: " + i);
+				break;
+			}
+		}
 
-		JScrollPane messagesScrollPane = new JScrollPane(roomMessagesPanel);
-		messagesScrollPane.setMinimumSize(new Dimension(50, 100));
-		messagesScrollPane.getViewport().setBackground(Color.white);
+		// Nếu tab chưa tồn tại, tạo tab mới
+		if (existingTabIndex == -1) {
+			System.out.println("Tab chưa tồn tại, tạo tab mới");
+			RoomMessagesPanel roomMessagesPanel = new RoomMessagesPanel(room);
+			roomMessagesPanels.add(roomMessagesPanel);
 
-		roomTabbedPane.addTab(room.name, messagesScrollPane);
-		roomTabbedPane.setTabComponentAt(roomTabbedPane.getTabCount() - 1,
-				new TabComponent(room.name, new ActionListener() {
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						roomMessagesPanels.remove(roomMessagesPanel);
-						roomTabbedPane.remove(messagesScrollPane);
-					}
-				}));
+			JScrollPane messagesScrollPane = new JScrollPane(roomMessagesPanel);
+			messagesScrollPane.setMinimumSize(new Dimension(50, 100));
+			messagesScrollPane.getViewport().setBackground(Color.white);
 
-		// Gọi getRoomMessages để lấy danh sách tin nhắn từ server
-		Main.socketController.getRoomMessages(room.id);
+			roomTabbedPane.addTab(room.name, messagesScrollPane);
+			roomTabbedPane.setTabComponentAt(roomTabbedPane.getTabCount() - 1,
+					new TabComponent(room.name, new ActionListener() {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							System.out.println("=== Đóng tab chat ===");
+							System.out.println("Đóng tab room ID: " + room.id + ", Room name: " + room.name);
+							System.out.println("Số lượng tin nhắn trong room: " + room.messages.size());
+							roomMessagesPanels.remove(roomMessagesPanel);
+							roomTabbedPane.remove(messagesScrollPane);
+							System.out.println("Đã đóng tab thành công");
+						}
+					}));
+
+			// Gọi getRoomMessages để lấy danh sách tin nhắn từ server
+			System.out.println("Gọi getRoomMessages để lấy tin nhắn từ server");
+			Main.socketController.getRoomMessages(room.id);
+
+			// Hiển thị các tin nhắn đã có trong room
+			System.out.println("Hiển thị các tin nhắn đã có trong room");
+			for (MessageData message : room.messages) {
+				addNewMessageGUI(room.id, message);
+			}
+		} else {
+			// Nếu tab đã tồn tại, chuyển đến tab đó
+			System.out.println("Chuyển đến tab đã tồn tại tại vị trí: " + existingTabIndex);
+			roomTabbedPane.setSelectedIndex(existingTabIndex);
+		}
+		System.out.println("=== Kết thúc mở tab chat ===");
 	}
 
 	public void updateOnlineUserJList() {
@@ -387,25 +422,52 @@ public class MainScreen extends JFrame implements ActionListener {
 
 	// ************** ROOM MESSAGES ***************
 	public void addNewMessage(int roomID, String type, String whoSend, String content) {
-		MessageData messageData = new MessageData(whoSend, type, content);
+		System.out.println("=== Thêm tin nhắn mới ===");
+		System.out.println("Room ID: " + roomID);
+		System.out.println("Type: " + type);
+		System.out.println("Who send: " + whoSend);
+		System.out.println("Content: " + content);
+
 		Room receiveMessageRoom = Room.findRoom(Main.socketController.allRooms, roomID);
+		if (receiveMessageRoom == null) {
+			System.out.println("Không tìm thấy room với ID: " + roomID);
+			return;
+		}
+
+		System.out.println("Số lượng tin nhắn hiện tại trong room: " + receiveMessageRoom.messages.size());
+
+		MessageData messageData = new MessageData(whoSend, type, content);
 		
-		// Chỉ thêm tin nhắn mới vào danh sách nếu chưa tồn tại
+		// Kiểm tra xem tin nhắn đã tồn tại chưa
 		boolean messageExists = false;
 		for (MessageData msg : receiveMessageRoom.messages) {
 			if (msg.whoSend.equals(whoSend) && msg.type.equals(type) && msg.content.equals(content)) {
 				messageExists = true;
+				System.out.println("Tin nhắn đã tồn tại, bỏ qua");
 				break;
 			}
 		}
 		
 		if (!messageExists) {
+			System.out.println("Thêm tin nhắn mới vào room");
 			receiveMessageRoom.messages.add(messageData);
-			addNewMessageGUI(roomID, messageData);
+			
+			// Kiểm tra xem tab chat đã được mở chưa
+			RoomMessagesPanel roomMessagesPanel = RoomMessagesPanel.findRoomMessagesPanel(roomMessagesPanels, roomID);
+			if (roomMessagesPanel == null) {
+				System.out.println("Tab chat chưa được mở, mở tab mới");
+				newRoomTab(receiveMessageRoom);
+			} else {
+				System.out.println("Thêm tin nhắn vào GUI");
+				addNewMessageGUI(roomID, messageData);
+			}
 		}
+
+		System.out.println("=== Kết thúc thêm tin nhắn ===");
 	}
 
 	private void addNewMessageGUI(int roomID, MessageData messageData) {
+		System.out.println("Thêm tin nhắn vào GUI - Room: " + roomID);
 		RoomMessagesPanel receiveMessageRoomMessagesPanel = RoomMessagesPanel.findRoomMessagesPanel(roomMessagesPanels, roomID);
 		if (receiveMessageRoomMessagesPanel != null) {
 			MessagePanel newMessagePanel = new MessagePanel(messageData);
@@ -417,6 +479,9 @@ public class MainScreen extends JFrame implements ActionListener {
 			receiveMessageRoomMessagesPanel.repaint();
 			roomTabbedPane.validate();
 			roomTabbedPane.repaint();
+			System.out.println("Đã thêm tin nhắn vào GUI thành công");
+		} else {
+			System.out.println("Không tìm thấy RoomMessagesPanel cho room: " + roomID);
 		}
 	}
 

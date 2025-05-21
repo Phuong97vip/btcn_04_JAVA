@@ -141,6 +141,7 @@ public class SocketController {
 									if (c != '\0')
 										content += c;
 								} while (c != '\0');
+								System.out.println("Nhận tin nhắn từ " + user + " trong room " + roomID + ": " + content);
 								Main.mainScreen.addNewMessage(roomID, "text", user, content);
 								break;
 							}
@@ -252,6 +253,39 @@ public class SocketController {
 												roomMessagesPanel.removeAll();
 												roomMessagesPanel.revalidate();
 												roomMessagesPanel.repaint();
+											}
+										}
+									}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+								break;
+							}
+							case "getRoomMessages": {
+								try {
+									String roomIdStr = receiver.readLine();
+									if (roomIdStr != null) {
+										int roomId = Integer.parseInt(roomIdStr);
+										Room room = Room.findRoom(allRooms, roomId);
+										if (room != null) {
+											System.out.println("Nhận yêu cầu lấy tin nhắn cho room " + roomId);
+											// Gửi số lượng tin nhắn
+											sender.write("" + room.messages.size());
+											sender.newLine();
+											sender.flush();
+
+											// Gửi từng tin nhắn
+											for (MessageData message : room.messages) {
+												System.out.println("Gửi tin nhắn: " + message.content + " từ " + message.whoSend);
+												sender.write("text from user to room");
+												sender.newLine();
+												sender.write(message.whoSend);
+												sender.newLine();
+												sender.write("" + roomId);
+												sender.newLine();
+												sender.write(message.content);
+												sender.write('\0');
+												sender.flush();
 											}
 										}
 									}
@@ -520,15 +554,59 @@ public class SocketController {
 		}
 	}
 
-	public void getRoomMessages(int roomId) {
+	public void getRoomMessages(int roomID) {
 		try {
 			sender.write("getRoomMessages");
 			sender.newLine();
-			sender.write("" + roomId);
+			sender.write(String.valueOf(roomID));
 			sender.newLine();
 			sender.flush();
+
+			String messageCountStr = receiver.readLine();
+			if (messageCountStr == null) {
+				System.out.println("Không nhận được số lượng tin nhắn từ server");
+				return;
+			}
+
+			int messageCount = Integer.parseInt(messageCountStr);
+			System.out.println("Nhận được " + messageCount + " tin nhắn từ server");
+
+			for (int i = 0; i < messageCount; i++) {
+				String header = receiver.readLine();
+				if (header == null) {
+					System.out.println("Không nhận được header cho tin nhắn " + (i + 1));
+					break;
+				}
+
+				String whoSend = receiver.readLine();
+				if (whoSend == null) {
+					System.out.println("Không nhận được người gửi cho tin nhắn " + (i + 1));
+					break;
+				}
+
+				String roomIdStr = receiver.readLine();
+				if (roomIdStr == null) {
+					System.out.println("Không nhận được room ID cho tin nhắn " + (i + 1));
+					break;
+				}
+
+				String content = "";
+				char c;
+				do {
+					c = (char) receiver.read();
+					if (c != '\0')
+						content += c;
+				} while (c != '\0');
+
+				String type = header.equals("text from user to room") ? "text" : "notify";
+				System.out.println("Tin nhắn " + (i + 1) + ": " + whoSend + " - " + type + " - " + content);
+				Main.mainScreen.addNewMessage(roomID, type, whoSend, content);
+			}
 		} catch (IOException e) {
+			System.out.println("Lỗi khi đọc tin nhắn: " + e.getMessage());
 			e.printStackTrace();
+		} catch (NumberFormatException e) {
+			System.out.println("Lỗi khi parse số lượng tin nhắn: " + e.getMessage());
 		}
 	}
 }
