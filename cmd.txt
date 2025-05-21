@@ -1,0 +1,5 @@
+javac -d bin -sourcepath src src/server/Main.java
+java -cp bin server.Main
+
+javac -d bin -sourcepath src src/client/Main.java
+java -cp bin client.Main
